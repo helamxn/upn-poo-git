@@ -35,13 +35,17 @@ public class ClienteServicio {
         if (codigo == null || codigo.trim().isEmpty()) {
             throw new ClienteException("No se puede guardar cliente con codigo nulo");
         }
-        if (!codigo.matches("\\d+")) {
-            throw new ClienteException("No se puede guardar cliente con codigo diferente a numeros");
+        // Verifica caracter por caracter que todos sean digitos (sin usar regex)
+        for (int i = 0; i < codigo.length(); i++) {
+            if (!Character.isDigit(codigo.charAt(i))) {
+                throw new ClienteException("No se puede guardar cliente con codigo diferente a numeros");
+            }
         }
     }
 
     public void validarEmail(String email) throws ClienteException {
-        if (email == null || !email.matches("^[\\w.-]+@[\\w.-]+\\.[a-zA-Z]{2,}$")) {
+        // Validacion basica: debe contener "@" y un "." (sin usar regex)
+        if (email == null || !email.contains("@") || !email.contains(".")) {
             throw new ClienteException("El email no tiene un dominio valido");
         }
     }
@@ -63,6 +67,10 @@ public class ClienteServicio {
 
     public Cliente buscarPorCodigo(int codigo) {
         return indice.get(codigo);
+    }
+
+    public List<Cliente> getClientes() {
+        return clientes;
     }
 
     public int total() {
