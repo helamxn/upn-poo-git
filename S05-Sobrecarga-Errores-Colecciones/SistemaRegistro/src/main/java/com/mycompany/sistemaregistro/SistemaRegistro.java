@@ -1,48 +1,66 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- */
 package com.mycompany.sistemaregistro;
 
-import excepciones.ClienteException;
+import java.util.List;
 import modelo.Cliente;
+import modelo.Producto;
+import modelo.Venta;
 import servicio.ClienteServicio;
+import servicio.ProductoServicio;
+import servicio.VentaServicio;
+import persistencia.ArchivoClientes;
+import excepciones.ProductoException;
+import excepciones.VentaException;
 
-/**
- *
- * @author Helaman
- */
 public class SistemaRegistro {
 
     public static void main(String[] args) {
-        ClienteServicio servicio = new ClienteServicio();
+        ClienteServicio clienteServicio = new ClienteServicio();
+        ProductoServicio productoServicio = new ProductoServicio();
+        VentaServicio ventaServicio = new VentaServicio();
 
-        servicio.registrar(new Cliente(101, "Ana Torres", "ana@correo.com"));
-        servicio.registrar(102, "Luis Rojas");
-        servicio.registrar(103, "Marta Diaz", "marta@correo.com");
+        // ---- Clientes ----
+        clienteServicio.registrar(new Cliente(101, "Ana Torres", "ana@correo.com"));
+        clienteServicio.registrar(102, "Luis Rojas");
 
-        String[] codigosPrueba = {"104", "abc", "", "105"};
-        for (String cod : codigosPrueba) {
-            try {
-                servicio.validarCodigo(cod);
-                servicio.registrar(Integer.parseInt(cod), "Cliente " + cod);
-                System.out.println("Cliente con codigo " + cod + " registrado.");
-            } catch (ClienteException e) {
-                System.out.println("Error: " + e.getMessage());
-            }
-        }
-
+        // ---- Productos ----
         try {
-            servicio.validarEmail("correo-invalido");
-        } catch (ClienteException e) {
-            System.out.println("Error: " + e.getMessage());
+            productoServicio.registrar(new Producto(201, "Cuaderno", 5.50));
+            productoServicio.registrar(new Producto(202, "Lapicero", 1.20));
+            productoServicio.registrar(new Producto(203, "Mochila", 0)); // invalido
+        } catch (ProductoException e) {
+            System.out.println("Error producto: " + e.getMessage());
         }
 
-        System.out.println("\n--- Lista de clientes registrados ---");
-        servicio.listar();
-        System.out.println("Total: " + servicio.total());
+        System.out.println("\n--- Productos registrados ---");
+        productoServicio.listar();
 
-        System.out.println("\n--- Busqueda por codigo ---");
-        Cliente encontrado = servicio.buscarPorCodigo(102);
-        System.out.println(encontrado != null ? "Encontrado: " + encontrado : "No encontrado");
+        // ---- Venta con detalles ----
+        try {
+            Cliente cliente = clienteServicio.buscarPorCodigo(101);
+            Venta venta = new Venta(1, cliente, "2026-05-31");
+            ventaServicio.agregarDetalle(venta, productoServicio.buscarPorCodigo(201), 3);
+            ventaServicio.agregarDetalle(venta, productoServicio.buscarPorCodigo(202), 5);
+            ventaServicio.registrarVenta(venta);
+
+            System.out.println("\n--- Detalle de la venta ---");
+            venta.getDetalles().forEach(System.out::println);
+            System.out.println("TOTAL: S/ " + venta.getTotal());
+        } catch (VentaException e) {
+            System.out.println("Error venta: " + e.getMessage());
+        }
+
+        System.out.println("\n--- Ventas registradas ---");
+        ventaServicio.listar();
+
+        // ---- Manejo de archivos ----
+        System.out.println("\n--- Gestion de archivos ---");
+        ArchivoClientes archivo = new ArchivoClientes();
+        archivo.guardar(clienteServicio.getClientes());
+
+        List<Cliente> leidos = archivo.cargar();
+        System.out.println("Clientes leidos desde el archivo:");
+        for (Cliente c : leidos) {
+            System.out.println(c);
+        }
     }
 }
