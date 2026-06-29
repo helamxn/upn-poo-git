@@ -9,6 +9,7 @@ package modelo;
  * @author Helaman
  */
 public class DetalleVenta {
+
     private Producto producto;
     private int cantidad;
     private double subtotal;
@@ -18,14 +19,23 @@ public class DetalleVenta {
         this.cantidad = cantidad;
         this.subtotal = calcularSubtotal();
     }
+
     public double calcularSubtotal() {
-        return producto.getPrecio() * cantidad;
+        return producto.calcularPrecioFinal() * cantidad;
     }
-    public Producto getProducto() { return producto; }
-    public int getCantidad() { return cantidad; }
-    public double getSubtotal() { return subtotal; }
+
+    public Producto getProducto() {
+        return producto;
+    }
+
+    public int getCantidad() {
+        return cantidad;
+    }
+
+    public double getSubtotal() {
+        return subtotal;
+    }
+
     @Override
     public String toString() {
-        return cantidad + " x " + producto.getNombre() + " = S/ " + subtotal;
-    }
-}
+        return cantidad + " x " + p

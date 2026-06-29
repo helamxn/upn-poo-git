@@ -18,9 +18,9 @@ import modelo.Cliente;
  * @author Helaman
  */
 public class ArchivoClientes {
+
     private static final String ARCHIVO = "clientes.txt";
 
-    // Guarda la lista de clientes en un archivo de texto
     public void guardar(List<Cliente> clientes) {
         try (BufferedWriter bw = new BufferedWriter(new FileWriter(ARCHIVO))) {
             for (Cliente c : clientes) {
@@ -34,7 +34,6 @@ public class ArchivoClientes {
         }
     }
 
-    // Lee los clientes desde el archivo de texto
     public List<Cliente> cargar() {
         List<Cliente> lista = new ArrayList<>();
         try (BufferedReader br = new BufferedReader(new FileReader(ARCHIVO))) {
@@ -52,5 +51,4 @@ public class ArchivoClientes {
             System.out.println("Error al leer: " + e.getMessage());
         }
         return lista;
-    }
-}
+    }

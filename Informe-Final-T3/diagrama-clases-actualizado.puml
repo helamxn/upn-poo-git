@@ -1,0 +1,148 @@
+@startuml
+title Diagrama de clases - Sistema de gestion de clientes y ventas
+
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam packageStyle rectangle
+
+package "modelo" {
+  class Cliente {
+    - codigo : int
+    - nombre : String
+    - email : String
+    - activo : boolean
+    + Cliente()
+    + Cliente(codigo : int, nombre : String)
+    + Cliente(codigo : int, nombre : String, email : String)
+    + toString() : String
+  }
+
+  abstract class Producto {
+    - codigo : int
+    - nombre : String
+    - precioBase : double
+    + Producto()
+    + Producto(codigo : int, nombre : String, precioBase : double)
+    + calcularPrecioFinal() : double
+    + getTipo() : String
+    + mostrarInformacion() : String
+    + getCaracteristicaEspecial() : String
+    + toString() : String
+  }
+
+  class ProductoElectronico {
+    - garantia : boolean
+    + ProductoElectronico(codigo : int, nombre : String, precioBase : double, garantia : boolean)
+    + calcularPrecioFinal() : double
+    + getTipo() : String
+    + getCaracteristicaEspecial() : String
+    + mostrarInformacion() : String
+  }
+
+  class ProductoAlimento {
+    - perecible : boolean
+    + ProductoAlimento(codigo : int, nombre : String, precioBase : double, perecible : boolean)
+    + calcularPrecioFinal() : double
+    + getTipo() : String
+    + getCaracteristicaEspecial() : String
+    + mostrarInformacion() : String
+  }
+
+  class ProductoRopa {
+    - talla : String
+    - enTemporada : boolean
+    + ProductoRopa(codigo : int, nombre : String, precioBase : double, talla : String, enTemporada : boolean)
+    + calcularPrecioFinal() : double
+    + getTipo() : String
+    + getCaracteristicaEspecial() : String
+    + mostrarInformacion() : String
+  }
+
+  class Venta {
+    - codigo : int
+    - cliente : Cliente
+    - fecha : String
+    - detalles : List<DetalleVenta>
+    - total : double
+    + Venta(codigo : int, cliente : Cliente, fecha : String)
+    + agregarDetalle(detalle : DetalleVenta) : void
+    + calcularTotal() : double
+  }
+
+  class DetalleVenta {
+    - producto : Producto
+    - cantidad : int
+    - subtotal : double
+    + DetalleVenta(producto : Producto, cantidad : int)
+    + calcularSubtotal() : double
+    + toString() : String
+  }
+}
+
+package "servicio" {
+  class ClienteServicio {
+    - clientes : List<Cliente>
+    - indice : HashMap<Integer, Cliente>
+    + registrar(c : Cliente) : void
+    + registrar(codigo : int, nombre : String) : void
+    + registrar(codigo : int, nombre : String, email : String) : void
+    + validarCodigo(codigo : String) : void
+    + validarEmail(email : String) : void
+    + listar() : void
+    + buscarPorCodigo(codigo : int) : Cliente
+    + total() : int
+  }
+
+  class ProductoServicio {
+    - productos : List<Producto>
+    - indice : HashMap<Integer, Producto>
+    + registrar(p : Producto) : void
+    + validar(p : Producto) : void
+    + listar() : void
+    + buscarPorCodigo(codigo : int) : Producto
+    + total() : int
+  }
+
+  class VentaServicio {
+    - ventas : List<Venta>
+    + agregarDetalle(venta : Venta, producto : Producto, cantidad : int) : void
+    + registrarVenta(venta : Venta) : void
+    + listar() : void
+    + buscarPorCodigo(codigo : int) : Venta
+    + total() : int
+  }
+}
+
+package "persistencia" {
+  class ArchivoClientes {
+    - ARCHIVO : String
+    + guardar(clientes : List<Cliente>) : void
+    + cargar() : List<Cliente>
+  }
+}
+
+package "excepciones" {
+  class ClienteException
+  class ProductoException
+  class VentaException
+}
+
+Producto <|-- ProductoElectronico
+Producto <|-- ProductoAlimento
+Producto <|-- ProductoRopa
+
+Cliente "1" --> "0..*" Venta : realiza
+Venta "1" *-- "1..*" DetalleVenta : contiene
+DetalleVenta "*" --> "1" Producto : referencia
+
+ClienteServicio ..> Cliente : gestiona
+ProductoServicio ..> Producto : gestiona
+VentaServicio ..> Venta : registra
+VentaServicio ..> DetalleVenta : crea
+VentaServicio ..> Producto : valida
+ArchivoClientes ..> Cliente : guarda/carga
+
+ClienteServicio ..> ClienteException : lanza
+ProductoServicio ..> ProductoException : lanza
+VentaServicio ..> VentaException : lanza
+@enduml
