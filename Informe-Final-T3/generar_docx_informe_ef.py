@@ -18,12 +18,14 @@ BASE_DIR = Path(__file__).resolve().parent
 MD_PATH = BASE_DIR / "Informe-Final-EF.md"
 OUT_PATH = Path(os.environ.get("INFORME_DOCX_OUT", BASE_DIR / "Informe-Final-EF.docx"))
 
-BLUE = RGBColor(46, 116, 181)
-DARK_BLUE = RGBColor(31, 77, 120)
+H1_COLOR = RGBColor(0x1F, 0x38, 0x64)   # igual al T3
+H2_COLOR = RGBColor(0x2C, 0x3E, 0x50)
+H3_COLOR = RGBColor(0x34, 0x49, 0x5E)
 GRAY = RGBColor(85, 85, 85)
 LIGHT_GRAY = "F2F4F7"
 BORDER = "B8C2CC"
 BASE_FONT = "Aptos"
+COVER_FONT = "Aptos Display"
 MIN_FONT_SIZE = 11
 
 
@@ -117,6 +119,10 @@ def enforce_docx_typography(path):
                     continue
                 changed = False
                 for r_fonts in root.iter(qn("w:rFonts")):
+                    # Preservar Aptos Display en portada; sólo normalizar el resto
+                    current = r_fonts.get(qn("w:ascii"), "")
+                    if current == COVER_FONT:
+                        continue
                     for attr in ("ascii", "hAnsi", "eastAsia", "cs"):
                         r_fonts.set(qn(f"w:{attr}"), BASE_FONT)
                     changed = True
@@ -155,65 +161,93 @@ def configure_document(doc):
     normal.paragraph_format.space_after = Pt(6)
     normal.paragraph_format.line_spacing = 1.10
 
-    for style_name, size, color, before, after in [
-        ("Heading 1", 16, BLUE, 16, 8),
-        ("Heading 2", 13, BLUE, 12, 6),
-        ("Heading 3", 12, DARK_BLUE, 8, 4),
+    BLACK = RGBColor(0, 0, 0)
+    for style_name, size, before, after in [
+        ("Heading 1", 16, 18, 5),
+        ("Heading 2", 13, 12, 4),
+        ("Heading 3", 12,  8, 3),
     ]:
         style = styles[style_name]
-        set_style_font(style, size=size, color=color, bold=True)
+        set_style_font(style, size=size, color=BLACK, bold=True)
         style.paragraph_format.space_before = Pt(before)
         style.paragraph_format.space_after = Pt(after)
 
-    footer = section.footer.paragraphs[0]
-    footer.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    run = footer.add_run(
-        "Informe Final EF - Sistema de gestion de clientes y ventas con SQL Server"
-    )
-    set_run_font(run, size=MIN_FONT_SIZE, color=GRAY)
+    # Sin pie de página
+    section.footer.is_linked_to_previous = False
+
+
+def _cover_para(doc, text, size, bold=False, space_before=0, space_after=8):
+    """Párrafo centrado con Aptos Display para la portada."""
+    p = doc.add_paragraph()
+    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    p.paragraph_format.space_before = Pt(space_before)
+    p.paragraph_format.space_after = Pt(space_after)
+    run = p.add_run(text)
+    run.font.name = COVER_FONT
+    run.font.size = Pt(size)
+    run.font.bold = bold
+    from docx.oxml.ns import qn
+    rpr = run._element.get_or_add_rPr()
+    rf = rpr.get_or_add_rFonts()
+    for attr in ("ascii", "hAnsi", "eastAsia", "cs"):
+        rf.set(qn(f"w:{attr}"), COVER_FONT)
+    return p
 
 
 def add_cover(doc, lines):
-    title = doc.add_paragraph()
-    title.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    title.paragraph_format.space_before = Pt(90)
-    title.paragraph_format.space_after = Pt(10)
-    run = title.add_run("Informe Final del Proyecto – Examen Final")
-    set_run_font(run, size=24, color=RGBColor(0, 0, 0), bold=True)
-
-    subtitle = doc.add_paragraph()
-    subtitle.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    subtitle.paragraph_format.space_after = Pt(28)
-    run = subtitle.add_run("Sistema de gestion de clientes y ventas con SQL Server y JDBC")
-    set_run_font(run, size=14, color=GRAY)
-
-    metadata = []
+    # Extraer metadatos del markdown
+    meta = {}
     for line in lines:
-        match = re.match(r"- \*\*(.+?):\*\* (.*)", line)
-        if match:
-            metadata.append((match.group(1), match.group(2)))
+        m = re.match(r"- \*\*(.+?):\*\* (.*)", line)
+        if m:
+            meta[m.group(1).strip()] = m.group(2).strip()
 
-    table = doc.add_table(rows=len(metadata), cols=2)
-    table.autofit = False
-    table.allow_autofit = False
-    table.columns[0].width = Inches(2.1)
-    table.columns[1].width = Inches(4.2)
-    set_table_borders(table, color="DADDE3")
+    # Institución
+    _cover_para(doc, "Universidad Privada del Norte (UPN)", size=14, bold=True, space_before=60, space_after=4)
+    facultad = meta.get("Facultad", "Facultad de Ingeniería")
+    carrera  = meta.get("Carrera", "Ingeniería de Sistemas Computacionales")
+    _cover_para(doc, f"{facultad} — {carrera}", size=11, space_after=16)
 
-    for row, (label, value) in zip(table.rows, metadata):
-        row.cells[0].width = Inches(2.1)
-        row.cells[1].width = Inches(4.2)
-        set_cell_shading(row.cells[0], LIGHT_GRAY)
-        for cell in row.cells:
-            cell.vertical_alignment = WD_ALIGN_VERTICAL.CENTER
-            set_cell_margins(cell)
-        p0 = row.cells[0].paragraphs[0]
-        p0.alignment = WD_ALIGN_PARAGRAPH.RIGHT
-        r0 = p0.add_run(label)
-        set_run_font(r0, size=MIN_FONT_SIZE, bold=True)
-        p1 = row.cells[1].paragraphs[0]
-        r1 = p1.add_run(value)
-        set_run_font(r1, size=MIN_FONT_SIZE)
+    # Título del documento y del proyecto
+    _cover_para(doc, "Informe Final del Proyecto – Examen Final", size=10, space_after=6)
+    titulo = meta.get("Título del proyecto", "Sistema de gestión de clientes y ventas")
+    _cover_para(doc, titulo, size=20, bold=True, space_after=20)
+
+    # Campos: label en negrita + valor en normal, centrados
+    campos = [
+        ("Curso",         meta.get("Curso", "")),
+        ("Organización",  meta.get("Organización seleccionada", "")),
+        ("Integrante",    meta.get("Integrante", "")),
+    ]
+    for label, value in campos:
+        if not value:
+            continue
+        p = doc.add_paragraph()
+        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        p.paragraph_format.space_before = Pt(6)
+        p.paragraph_format.space_after = Pt(0)
+        r_label = p.add_run(f"{label}:")
+        r_label.font.name = COVER_FONT
+        r_label.font.bold = True
+        r_label.font.size = Pt(11)
+        rpr = r_label._element.get_or_add_rPr()
+        rf = rpr.get_or_add_rFonts()
+        for attr in ("ascii", "hAnsi", "eastAsia", "cs"):
+            rf.set(qn(f"w:{attr}"), COVER_FONT)
+        pv = doc.add_paragraph()
+        pv.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        pv.paragraph_format.space_before = Pt(0)
+        pv.paragraph_format.space_after = Pt(4)
+        r_val = pv.add_run(value)
+        r_val.font.name = COVER_FONT
+        r_val.font.size = Pt(11)
+        rpr2 = r_val._element.get_or_add_rPr()
+        rf2 = rpr2.get_or_add_rFonts()
+        for attr in ("ascii", "hAnsi", "eastAsia", "cs"):
+            rf2.set(qn(f"w:{attr}"), COVER_FONT)
+
+    # Ciclo al final
+    _cover_para(doc, meta.get("Ciclo académico", "2026-1"), size=11, space_before=16, space_after=0)
 
     doc.add_page_break()
 
@@ -326,8 +360,11 @@ def add_paragraph_from_markdown(doc, line):
         p = doc.add_paragraph(style="List Bullet")
         text = bullet.group(1)
     elif numbered:
-        p = doc.add_paragraph(style="List Number")
-        text = numbered.group(2)
+        # Usar Normal + número explícito para evitar numeración continua de Word
+        p = doc.add_paragraph()
+        p.paragraph_format.left_indent = Inches(0.25)
+        p.paragraph_format.first_line_indent = Inches(-0.25)
+        text = numbered.group(1) + ". " + numbered.group(2)
     else:
         p = doc.add_paragraph()
         text = stripped
@@ -394,6 +431,7 @@ def build_document():
             add_markdown_table(doc, rows)
             i = new_i
             continue
+
 
         if stripped.startswith("# "):
             p = doc.add_paragraph()

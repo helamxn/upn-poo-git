@@ -1,0 +1,194 @@
+@startuml
+title Diagrama de clases - Sistema de gestion de clientes y ventas (EF_POO - Libreria y Bazar HAS)
+
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam packageStyle rectangle
+
+package "ef_poo.modelo" {
+  class Cliente {
+    - codigo : int
+    - nombre : String
+    - email : String
+    + Cliente()
+    + Cliente(codigo : int, nombre : String)
+    + Cliente(codigo : int, nombre : String, email : String)
+    + toString() : String
+  }
+
+  abstract class Producto {
+    - codigo : int
+    - nombre : String
+    - precioBase : double
+    + Producto()
+    + Producto(codigo : int, nombre : String, precioBase : double)
+    + {abstract} calcularPrecioFinal() : double
+    + {abstract} getTipo() : String
+    + {abstract} mostrarInformacion() : String
+    + {abstract} getCaracteristicaEspecial() : String
+    + toString() : String
+  }
+
+  class ProductoUtilEscolar {
+    - enCampaniaEscolar : boolean
+    + ProductoUtilEscolar(codigo : int, nombre : String, precioBase : double, enCampaniaEscolar : boolean)
+    + calcularPrecioFinal() : double
+    + getTipo() : String
+    + getCaracteristicaEspecial() : String
+    + mostrarInformacion() : String
+  }
+
+  class ProductoPapeleria {
+    - ventaPorMayor : boolean
+    + ProductoPapeleria(codigo : int, nombre : String, precioBase : double, ventaPorMayor : boolean)
+    + calcularPrecioFinal() : double
+    + getTipo() : String
+    + getCaracteristicaEspecial() : String
+    + mostrarInformacion() : String
+  }
+
+  class ProductoBazar {
+    - categoria : String
+    - temporadaAlta : boolean
+    + ProductoBazar(codigo : int, nombre : String, precioBase : double, categoria : String, temporadaAlta : boolean)
+    + calcularPrecioFinal() : double
+    + getTipo() : String
+    + getCaracteristicaEspecial() : String
+    + mostrarInformacion() : String
+  }
+
+  class Venta {
+    - codigo : int
+    - cliente : Cliente
+    - fecha : String
+    - detalles : List<DetalleVenta>
+    - total : double
+    + Venta(codigo : int, cliente : Cliente, fecha : String)
+    + agregarDetalle(detalle : DetalleVenta) : void
+    + calcularTotal() : double
+  }
+
+  class DetalleVenta {
+    - producto : Producto
+    - cantidad : int
+    - subtotal : double
+    + DetalleVenta(producto : Producto, cantidad : int)
+    + calcularSubtotal() : double
+    + toString() : String
+  }
+}
+
+package "ef_poo.servicio" {
+  class ClienteServicio {
+    + registrar(c : Cliente) : void
+    + registrar(codigo : int, nombre : String) : void
+    + registrar(codigo : int, nombre : String, email : String) : void
+    + validarCodigo(codigo : String) : void
+    + validarNombre(nombre : String) : void
+    + validarEmail(email : String) : void
+    + agregar(c : Cliente) : void
+    + actualizar(codigo : int, nombre : String, email : String) : void
+    + eliminar(codigo : int) : void
+    + listar() : void
+    + buscarPorCodigo(codigo : int) : Cliente
+    + getClientes() : List<Cliente>
+    + total() : int
+  }
+
+  class ProductoServicio {
+    + validar(p : Producto) : void
+    + registrar(p : Producto) : void
+    + actualizar(p : Producto) : void
+    + eliminar(codigo : int) : void
+    + listar() : void
+    + buscarPorCodigo(codigo : int) : Producto
+    + getProductos() : List<Producto>
+    + total() : int
+  }
+
+  class VentaServicio {
+    - ventas : List<Venta>
+    - siguienteCodigo : int
+    - productoServicio : ProductoServicio
+    + VentaServicio()
+    + VentaServicio(clienteServicio : ClienteServicio, productoServicio : ProductoServicio)
+    + getSiguienteCodigo() : int
+    + agregarDetalle(venta : Venta, producto : Producto, cantidad : int) : void
+    + registrarVenta(venta : Venta) : void
+    + listar() : void
+    + listarPorCliente(codigoCliente : int) : List<Venta>
+    + buscarPorCodigo(codigo : int) : Venta
+    + getVentas() : List<Venta>
+    + total() : int
+  }
+}
+
+package "ef_poo.persistencia" {
+  class Conexion {
+    - {static} SERVIDOR : String
+    - {static} BASE_DE_DATOS : String
+    - {static} USUARIO : String
+    - {static} CONTRASENA : String
+    - {static} URL : String
+    - {static} conexion : Connection
+    - Conexion()
+    + {static} obtener() : Connection
+    + {static} cerrar() : void
+  }
+
+  class ClienteDAO {
+    + {static} insertar(c : Cliente) : void
+    + {static} actualizar(c : Cliente) : void
+    + {static} eliminar(codigo : int) : void
+    + {static} listarTodos() : List<Cliente>
+    + {static} buscarPorCodigo(codigo : int) : Cliente
+  }
+
+  class ProductoDAO {
+    + {static} insertar(p : Producto) : void
+    + {static} actualizar(p : Producto) : void
+    + {static} eliminar(codigo : int) : void
+    + {static} tieneVentasAsociadas(codigoProducto : int) : boolean
+    + {static} listarTodos() : List<Producto>
+    + {static} buscarPorCodigo(codigo : int) : Producto
+  }
+
+  class VentaDAO {
+    + {static} insertar(venta : Venta) : void
+    + {static} listarTodas(clienteServicio, productoServicio) : List<Venta>
+    + {static} listarPorCliente(codigoCliente : int, productoServicio) : List<Venta>
+  }
+}
+
+package "ef_poo.excepciones" {
+  class ClienteException
+  class ProductoException
+  class VentaException
+}
+
+Producto <|-- ProductoUtilEscolar
+Producto <|-- ProductoPapeleria
+Producto <|-- ProductoBazar
+
+Cliente "1" --> "0..*" Venta : realiza
+Venta "1" *-- "1..*" DetalleVenta : contiene
+DetalleVenta "*" --> "1" Producto : referencia
+
+ClienteServicio ..> Cliente : gestiona
+ProductoServicio ..> Producto : gestiona
+VentaServicio ..> Venta : registra
+VentaServicio ..> DetalleVenta : crea
+VentaServicio ..> Producto : valida
+
+ClienteServicio ..> ClienteDAO : usa
+ProductoServicio ..> ProductoDAO : usa
+VentaServicio ..> VentaDAO : usa
+
+ClienteDAO ..> Conexion : usa
+ProductoDAO ..> Conexion : usa
+VentaDAO ..> Conexion : usa
+
+ClienteServicio ..> ClienteException : lanza
+ProductoServicio ..> ProductoException : lanza
+VentaServicio ..> VentaException : lanza
+@enduml
